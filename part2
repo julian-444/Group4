@@ -1,0 +1,64 @@
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <unistd.h>
+
+#define LOG_FILE "/var/log/auth.log"
+#define MAX_LINE 1024
+
+void ban_ip(const char *ip) {
+    char command[256];
+    snprintf(command, sizeof(command),
+             "iptables -A INPUT -s %s -j DROP", ip);
+    system(command);
+    printf("[!] Banned IP: %s\n", ip);
+}
+
+void monitor_logs() {
+    FILE *fp;
+    char line[MAX_LINE];
+
+    fp = fopen(LOG_FILE, "r");
+    if (!fp) {
+        perror("Error opening log file");
+        return;
+    }
+
+    // Move to end of file (tail behavior)
+    fseek(fp, 0, SEEK_END);
+
+    while (1) {
+        if (fgets(line, sizeof(line), fp) != NULL) {
+
+            // Detect failed login
+            if (strstr(line, "Failed password")) {
+                printf("[!] Failed login detected:\n%s", line);
+
+                // Extract IP (simple method)
+                char *ip = strstr(line, "from ");
+                if (ip) {
+                    ip += 5;
+                    char extracted_ip[50];
+                    sscanf(ip, "%s", extracted_ip);
+
+                    ban_ip(extracted_ip);
+                }
+            }
+
+            // Detect sudo abuse
+            if (strstr(line, "sudo")) {
+                printf("[!] Sudo activity:\n%s", line);
+            }
+        }
+
+        sleep(1);
+    }
+
+    fclose(fp);
+}
+
+int main() {
+    printf("=== Intrusion Detection Started ===\n");
+    monitor_logs();
+    return 0;
+}
