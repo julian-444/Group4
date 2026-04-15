@@ -1,0 +1,42 @@
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+
+void check_open_ports() {
+    printf("\n[+] Checking Open Ports:\n");
+    system("ss -tuln");  // lists open ports
+}
+
+void check_firewall() {
+    printf("\n[+] Checking Firewall Status:\n");
+    system("ufw status"); // works if UFW is installed
+}
+
+void check_empty_passwords() {
+    printf("\n[+] Checking Users with Empty Passwords:\n");
+    system("awk -F: '($2==""){print $1}' /etc/shadow");
+}
+
+void check_world_writable() {
+    printf("\n[+] Checking World-Writable Files:\n");
+    system("find / -type f -perm -0002 2>/dev/null");
+}
+
+void check_ssh_config() {
+    printf("\n[+] Checking SSH Configuration:\n");
+    system("grep -E 'PermitRootLogin|PasswordAuthentication' /etc/ssh/sshd_config");
+}
+
+int main() {
+    printf("==== Security Audit Report ====\n");
+
+    check_open_ports();
+    check_firewall();
+    check_empty_passwords();
+    check_world_writable();
+    check_ssh_config();
+
+    printf("\n==== Audit Complete ====\n");
+
+    return 0;
+}
